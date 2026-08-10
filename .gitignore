@@ -1,21 +1,29 @@
 # Task template (local reference only)
 TaskTemplate.md
 
-# Compiled C/C++ files
+# Compiled C/C++ binaries & executables
 *.o
 *.out
 *.exe
+*.a
+*.so
+*.dll
 overflow
+overflow.exe
+**/overflow
+**/overflow.exe
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 
-# OS generated files
+# OS generated files & shortcuts
 Thumbs.db
 Desktop.ini
 .DS_Store
+*.url
+LinkAlRepositorioLeonardoDuran.url
 
 # IDE / Editor
 .vscode/
