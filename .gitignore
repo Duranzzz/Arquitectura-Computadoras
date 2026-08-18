@@ -20,7 +20,9 @@ __pycache__/
 
 # OS generated files & shortcuts
 Thumbs.db
+thumbs.db
 Desktop.ini
+desktop.ini
 .DS_Store
 *.url
 LinkAlRepositorioLeonardoDuran.url
