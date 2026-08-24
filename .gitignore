@@ -1,5 +1,7 @@
-# Task template (local reference only)
+# Task templates and draft scratchpad (local reference only)
 TaskTemplate.md
+CurrentTask.md
+TareaActual.md
 
 # Compiled C/C++ binaries & executables
 *.o
