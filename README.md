@@ -64,16 +64,18 @@ Cada tarjeta en el tablero corresponde a una actividad asignada por el docente: 
 
 ## Formato de Tareas
 
-Cada issue en el tablero Kanban sigue el siguiente formato estandarizado en inglés:
+Cada issue en el tablero Kanban sigue el formato estandarizado oficial en inglés definido en [`TaskTemplate.md`](TaskTemplate.md):
 
 ```markdown
 ## Title
 <!-- Infinitive verb + short, clear phrase (3rd person) -->
+<!-- Everything has to be in English -->
+<!-- Kanban Project Fields: Assignee = Duranzzz | Start Date = Current Date (YYYY-MM-DD) | Target Date = Due Date (Defaults to Current Date if not specified) -->
 
 ## Description
-**Assigned by:** Paulo César Loayza Carrasco
-**What to do:** [Action to be performed]
-**Objective:** [Purpose and academic benefit]
+**Assigned by:** Paulo César Loayza Carrasco  
+**What to do:** [Action to be performed]  
+**Objective:** [Purpose and academic benefit]  
 
 ## Responsible
 Leonardo Durán Cuenca
@@ -88,14 +90,28 @@ https://github.com/Duranzzz/Arquitectura-Computadoras
 <p align="center">
 
 </p>
+
+## Program Output
+<p align="center">
+
+</p>
 ```
 
-**Reglas para la redacción:**
-- **Title:** Utilizar verbo en infinitivo (ej: *Install*, *Implement*, *Execute*, *Analyze*), en tercera persona, de forma concisa y precisa.
-- **Description:** Indicar claramente quién solicita la actividad, qué acción técnica se requiere y el objetivo o beneficio de aprendizaje.
-- **Link:** Enlace al repositorio o recurso correspondiente a la clase.
-- **Attachments:** Sección destinada a evidencias visuales gestionadas directamente desde GitHub mediante etiquetas HTML de centrado.
+### Reglas para la Redacción y Metadatos en GitHub Projects
+
+* **Asignación (`Assignee`):** Todo issue se asigna directamente al usuario de GitHub [`@Duranzzz`](https://github.com/Duranzzz).
+* **Fecha de Inicio (`Start date`):** Se establece automáticamente con la fecha de creación de la tarea (`YYYY-MM-DD`, día actual).
+* **Fecha Objetivo / Límite (`Target date` / `Due Date`):** Representa el plazo de entrega de la práctica (`YYYY-MM-DD`). En caso de no especificarse una fecha límite, se toma por defecto la fecha actual.
+* **Título (`Title`):** Verbo en infinitivo en tercera persona (ej: *Install*, *Implement*, *Execute*, *Analyze*, *Build*), redactado en inglés de forma concisa y técnica.
+* **Descripción (`Description`):**
+  * `Assigned by:` Siempre el docente responsable (**Paulo César Loayza Carrasco**).
+  * `What to do:` Detalle técnico paso a paso de lo que se implementa, compila o ejecuta.
+  * `Objective:` Justificación conceptual, aprendizaje esperado y relevancia en la arquitectura del computador.
+* **Responsable (`Responsible`):** Leonardo Durán Cuenca.
+* **Enlace (`Link`):** URL al repositorio o ruta de la carpeta específica dentro de la rama `main`.
+* **Evidencias (`Attachments` y `Program Output`):** Secciones con etiquetas HTML `<p align="center">` para albergar imágenes centradas del procedimiento y capturas de la salida por terminal/consola.
 
 ---
 
 *Repositorio mantenido por Leonardo Durán Cuenca — 2026*
+
