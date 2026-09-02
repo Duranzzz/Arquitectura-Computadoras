@@ -10,6 +10,7 @@ TareaActual.md
 *.a
 *.so
 *.dll
+*.bin
 overflow
 overflow.exe
 **/overflow
