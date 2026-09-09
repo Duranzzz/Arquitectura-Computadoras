@@ -1,367 +1,644 @@
 Attribute VB_Name = "ModuloSimuladorCPU"
-' ==============================================================================
-' SIMULADOR DE ARQUITECTURA DE COMPUTADORAS EN EXCEL VBA
-' Modelo: Eduardo Alcalde Lancharro & Miguel García López (McGraw-Hill)
-' Instrucción con 3 Direcciones: SUMAR 033 992 993
-' ==============================================================================
 Option Explicit
 
-' Constantes de celdas en la hoja 'Simulador_CPU'
-Public Const CELDA_CP       As String = "C5"
-Public Const CELDA_RI       As String = "C6"
-Public Const CELDA_CO       As String = "C7"
-Public Const CELDA_OP1_ADDR As String = "C8"
-Public Const CELDA_OP2_ADDR As String = "C9"
-Public Const CELDA_OP3_ADDR As String = "C10"
-Public Const CELDA_ESTADO   As String = "C11"
+' ==============================================================================
+' SIMULADOR DE COMPUTADOR - ARQUITECTURA DE VON NEUMANN (EXCEL VBA)
+' Modelo Funcional: Eduardo Alcalde Lancharro & Miguel García López
+' Ciclo de Instrucción: Búsqueda (Fetch), Decodificación y Ejecución
+' Autor: Leonardo Durán Cuenca
+' ==============================================================================
 
-Public Const CELDA_REN1     As String = "G5"
-Public Const CELDA_REN2     As String = "G6"
-Public Const CELDA_COP      As String = "G7"
-Public Const CELDA_AC       As String = "G8"
-Public Const CELDA_ZF       As String = "G9"
-Public Const CELDA_CF       As String = "G10"
-Public Const CELDA_SF       As String = "G11"
+' Constantes de color para resaltado visual
+Public Const COLOR_RESALTADO As Long = 6876159       ' RGB(255, 235, 59) Amarillo vibrante
+Public Const COLOR_BLANCO As Long = 16777215         ' RGB(255, 255, 255) Blanco
+Public Const COLOR_FLECHA_ACTIVA As Long = 23295     ' RGB(255, 90, 0) Naranja/Rojo activo
+Public Const COLOR_FLECHA_NEUTRA As Long = 11184810  ' RGB(170, 170, 170) Gris neutro
+Public Const RETARDO_MICROORDEN As Double = 0.4      ' Segundos de pausa visual
 
-Public Const CELDA_RDM      As String = "K5"
-Public Const CELDA_RIM      As String = "K6"
-Public Const CELDA_SELECTOR As String = "K7"
-Public Const CELDA_PASO_TN  As String = "K11"
-
-Public Const CELDA_CONSOLA  As String = "H18"
-
-' ------------------------------------------------------------------------------
-' 1. EJECUCIÓN PASO A PASO (UN PULSO DE RELOJ = UNA MICROORDEN)
-' ------------------------------------------------------------------------------
+' ==============================================================================
+' 1. MÁQUINA DE ESTADOS PRINCIPAL: PasoCicloReloj
+' ==============================================================================
 Public Sub PasoCicloReloj()
-    Dim wsSim As Worksheet, wsTraza As Worksheet
-    Set wsSim = ThisWorkbook.Sheets("Simulador_CPU")
-    On Error Resume Next
-    Set wsTraza = ThisWorkbook.Sheets("Tabla_de_Traza")
-    On Error GoTo 0
-
-    Dim paso As String
-    paso = UCase(Trim(CStr(wsSim.Range(CELDA_PASO_TN).Value)))
-    If paso = "" Then paso = "T0"
-
-    Dim cp As String, rdm As String, rim As String, ri As String
-    Dim ren1 As String, ren2 As String, ac As String
-    cp = CStr(wsSim.Range(CELDA_CP).Value)
-    rdm = CStr(wsSim.Range(CELDA_RDM).Value)
-    rim = CStr(wsSim.Range(CELDA_RIM).Value)
-    ri = CStr(wsSim.Range(CELDA_RI).Value)
-    ren1 = CStr(wsSim.Range(CELDA_REN1).Value)
-    ren2 = CStr(wsSim.Range(CELDA_REN2).Value)
-    ac = CStr(wsSim.Range(CELDA_AC).Value)
-
-    Dim nuevoPaso As String, fase As String, microorden As String, descripcion As String
-
-    Select Case paso
-        Case "T0"
-            nuevoPaso = "T1"
-            fase = "BÚSQUEDA"
-            microorden = "RDM ← C.P."
-            rdm = cp
-            descripcion = "Paso T1: La Unidad de Control transfiere el contenido del C.P. (" & cp & ") al RDM a través del bus de direcciones."
-            wsSim.Range(CELDA_ESTADO).Value = "BÚSQUEDA (Fetch)"
-            wsSim.Range(CELDA_RDM).Value = rdm
-            wsSim.Range(CELDA_SELECTOR).Value = "APUNTANDO A " & rdm
-            ResaltarFilaMemoria wsSim, "006", RGB(254, 240, 138) ' Amarillo
-
-        Case "T1"
-            nuevoPaso = "T2"
-            fase = "BÚSQUEDA"
-            microorden = "RIM ← M(RDM)"
-            rim = ObtenerDatoMemoria(wsSim, rdm)
-            descripcion = "Paso T2: El selector accede a la dirección " & rdm & " de la Memoria Central y transfiere la instrucción al RIM."
-            wsSim.Range(CELDA_RIM).Value = rim
-
-        Case "T2"
-            nuevoPaso = "T3"
-            fase = "BÚSQUEDA"
-            microorden = "R.I. ← RIM"
-            ri = rim
-            descripcion = "Paso T3: La instrucción se transfiere del RIM al Registro de Instrucción (R.I.) en la Unidad de Control."
-            wsSim.Range(CELDA_RI).Value = ri
-
-        Case "T3"
-            nuevoPaso = "T4"
-            fase = "BÚSQUEDA"
-            microorden = "Sec ← Decod(RI)"
-            descripcion = "Paso T4: El Decodificador interpreta la instrucción '" & ri & "' y notifica al Secuenciador."
-            wsSim.Range(CELDA_CO).Value = "SUMAR"
-            wsSim.Range(CELDA_OP1_ADDR).Value = "033"
-            wsSim.Range(CELDA_OP2_ADDR).Value = "992"
-            wsSim.Range(CELDA_OP3_ADDR).Value = "993"
-
-        Case "T4"
-            nuevoPaso = "T5"
-            fase = "BÚSQUEDA"
-            microorden = "C.P. ← C.P. + 1"
-            cp = "007"
-            descripcion = "Paso T5: El Contador de Programa (C.P.) se autoincrementa en 1, apuntando a la siguiente posición consecutiva (007)."
-            wsSim.Range(CELDA_CP).Value = cp
-
-        Case "T5"
-            nuevoPaso = "T6"
-            fase = "EJECUCIÓN"
-            microorden = "RDM ← RI(&OP1)"
-            rdm = "033"
-            descripcion = "Paso T6: Se transfiere la dirección del 1er Operando (033) desde el R.I. al RDM."
-            wsSim.Range(CELDA_ESTADO).Value = "EJECUCIÓN (Execute)"
-            wsSim.Range(CELDA_RDM).Value = rdm
-            wsSim.Range(CELDA_SELECTOR).Value = "APUNTANDO A 033"
-            ResaltarFilaMemoria wsSim, "033", RGB(191, 219, 254) ' Azul
-
-        Case "T6"
-            nuevoPaso = "T7"
-            fase = "EJECUCIÓN"
-            microorden = "RIM ← S(RDM)"
-            rim = ObtenerDatoMemoria(wsSim, rdm)
-            descripcion = "Paso T7: El selector extrae el dato del 1er operando (" & rim & ") de la memoria y lo carga en el RIM."
-            wsSim.Range(CELDA_RIM).Value = rim
-
-        Case "T7"
-            nuevoPaso = "T8"
-            fase = "EJECUCIÓN"
-            microorden = "REN 1 ← RIM"
-            ren1 = rim
-            descripcion = "Paso T8: El dato del 1er operando (" & ren1 & ") viaja desde el RIM al Registro de Entrada 1 (REN 1) de la UAL."
-            wsSim.Range(CELDA_REN1).Value = ren1
-
-        Case "T8"
-            nuevoPaso = "T9"
-            fase = "EJECUCIÓN"
-            microorden = "RDM ← RI(&OP2)"
-            rdm = "992"
-            descripcion = "Paso T9: Se transfiere la dirección del 2do Operando (992) desde el R.I. al RDM."
-            wsSim.Range(CELDA_RDM).Value = rdm
-            wsSim.Range(CELDA_SELECTOR).Value = "APUNTANDO A 992"
-            ResaltarFilaMemoria wsSim, "992", RGB(191, 219, 254)
-
-        Case "T9"
-            nuevoPaso = "T10"
-            fase = "EJECUCIÓN"
-            microorden = "RIM ← S(RDM)"
-            rim = ObtenerDatoMemoria(wsSim, rdm)
-            descripcion = "Paso T10: El selector extrae el dato del 2do operando (" & rim & ") de la memoria y lo carga en el RIM."
-            wsSim.Range(CELDA_RIM).Value = rim
-
-        Case "T10"
-            nuevoPaso = "T11"
-            fase = "EJECUCIÓN"
-            microorden = "REN 2 ← RIM"
-            ren2 = rim
-            descripcion = "Paso T11: El dato del 2do operando (" & ren2 & ") viaja desde el RIM al Registro de Entrada 2 (REN 2) de la UAL."
-            wsSim.Range(CELDA_REN2).Value = ren2
-
-        Case "T11"
-            nuevoPaso = "T12"
-            fase = "EJECUCIÓN"
-            microorden = "Ac ← C.OP(REN1, REN2)"
-            Dim valSuma As Double
-            valSuma = CDbl(ren1) + CDbl(ren2)
-            ac = CStr(valSuma)
-            descripcion = "Paso T12: La UAL suma REN 1 + REN 2 (" & ren1 & " + " & ren2 & " = " & ac & "). El resultado se guarda en el Acumulador."
-            wsSim.Range(CELDA_AC).Value = ac
-            wsSim.Range(CELDA_ZF).Value = IIf(valSuma = 0, 1, 0)
-
-        Case "T12"
-            nuevoPaso = "T13"
-            fase = "EJECUCIÓN"
-            microorden = "RIM ← Ac"
-            rim = ac
-            descripcion = "Paso T13: El resultado de la suma (" & ac & ") viaja desde el Acumulador al RIM por el bus de datos."
-            wsSim.Range(CELDA_RIM).Value = rim
-
-        Case "T13"
-            nuevoPaso = "T14"
-            fase = "EJECUCIÓN"
-            microorden = "RDM ← RI(&OP3)"
-            rdm = "993"
-            descripcion = "Paso T14: Se transfiere la dirección de destino (993) desde el R.I. al RDM."
-            wsSim.Range(CELDA_RDM).Value = rdm
-            wsSim.Range(CELDA_SELECTOR).Value = "APUNTANDO A 993"
-            ResaltarFilaMemoria wsSim, "993", RGB(187, 247, 208) ' Verde
-
-        Case "T14"
-            nuevoPaso = "T15"
-            fase = "EJECUCIÓN"
-            microorden = "M(RDM) ← RIM"
-            EscribirDatoMemoria wsSim, rdm, rim
-            descripcion = "Paso T15: El selector graba el dato del RIM (" & rim & ") en la celda 993 de la Memoria Central. ¡Instrucción completada con éxito!"
-            wsSim.Range(CELDA_ESTADO).Value = "COMPLETADO (Fin de Ciclo)"
-            wsSim.Range(CELDA_SELECTOR).Value = "ESCRITURA COMPLETADA"
-
-        Case "T15"
-            MsgBox "Instrucción finalizada. Presione 'Reset' para reiniciar.", vbInformation, "Simulador CPU"
-            Exit Sub
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    Desproteger ws
+    
+    Dim sFase As String
+    sFase = Trim(UCase(ws.Range("Fase").Value))
+    
+    Select Case sFase
+        Case "INICIO", ""
+            ' ------------------------------------------------------------------
+            ' Paso 1: INICIO -> RDM = CP -> Fase = FETCH_RIM
+            ' ------------------------------------------------------------------
+            ws.Range("RDM").Value = ws.Range("CP").Value
+            ws.Range("Fase").Value = "FETCH_RIM"
+            ws.Range("Reloj").Value = "T1"
+            ws.Range("BusDirecciones").Value = "CP -> RDM (" & ws.Range("CP").Value & ")"
+            ws.Range("BusControl").Value = "INACTIVO"
+            ws.Range("SelectorMem").Value = "INACTIVO"
+            ws.Range("Consola").Value = "Fase Búsqueda [T1]: Transferencia de dirección de la siguiente instrucción (RDM <- CP)."
+            
+            AnimarFlecha "FlechaCP_RDM"
+            ResaltarCambio ws.Range("RDM")
+            RegistrarPasoEnTraza "RDM <- CP"
+            
+        Case "FETCH_RIM"
+            ' ------------------------------------------------------------------
+            ' Paso 2: FETCH_RIM -> RIM = BuscarEnMemoria(RDM) -> Fase = FETCH_RI
+            ' ------------------------------------------------------------------
+            Dim dirRDM As String
+            dirRDM = Trim(ws.Range("RDM").Value)
+            
+            ws.Range("SelectorMem").Value = "ACTIVO"
+            ws.Range("BusControl").Value = "LECTURA"
+            ws.Range("BusDirecciones").Value = "RDM -> Memoria (" & dirRDM & ")"
+            AnimarFlecha "FlechaRDM_Mem"
+            
+            Dim contenido As String
+            contenido = BuscarEnMemoria(dirRDM)
+            
+            ws.Range("RIM").Value = contenido
+            ws.Range("BusDatos").Value = "RAM -> RIM (" & contenido & ")"
+            ws.Range("Fase").Value = "FETCH_RI"
+            ws.Range("Reloj").Value = "T2"
+            ws.Range("Consola").Value = "Fase Búsqueda [T2]: Lectura de Memoria Central hacia el Registro de Información (RIM <- Mem[" & dirRDM & "])."
+            
+            AnimarFlecha "FlechaMem_RIM"
+            ResaltarCambio ws.Range("RIM")
+            RegistrarPasoEnTraza "RIM <- Mem[RDM]"
+            
+        Case "FETCH_RI"
+            ' ------------------------------------------------------------------
+            ' Paso 3: FETCH_RI -> RI = RIM -> Fase = DECODIFICAR
+            ' ------------------------------------------------------------------
+            ws.Range("RI").Value = ws.Range("RIM").Value
+            ws.Range("BusDatos").Value = "RIM -> RI (" & ws.Range("RIM").Value & ")"
+            ws.Range("Fase").Value = "DECODIFICAR"
+            ws.Range("Reloj").Value = "T3"
+            ws.Range("Consola").Value = "Fase Búsqueda [T3]: Carga de la instrucción en el Registro de Instrucción (RI <- RIM)."
+            
+            AnimarFlecha "FlechaRIM_RI"
+            ResaltarCambio ws.Range("RI")
+            RegistrarPasoEnTraza "RI <- RIM"
+            
+        Case "DECODIFICAR"
+            ' ------------------------------------------------------------------
+            ' Paso 4: DECODIFICAR -> separar RI en CO, OP1, OP2, OP3 -> Fase = INC_CP
+            ' ------------------------------------------------------------------
+            DecodificarInstruccion
+            ws.Range("Fase").Value = "INC_CP"
+            ws.Range("Reloj").Value = "T4"
+            ws.Range("Consola").Value = "Fase Decodificación [T4]: Decodificador extrae CO=" & ws.Range("CO").Value & " y direcciones de operandos."
+            
+            ResaltarCambio ws.Range("C7:C10")
+            RegistrarPasoEnTraza "Decodificar RI (CO, OP1, OP2, OP3)"
+            
+        Case "INC_CP"
+            ' ------------------------------------------------------------------
+            ' Paso 5: INC_CP -> CP = CP + 1 -> Fase = EJECUTAR
+            ' ------------------------------------------------------------------
+            Dim valCP As Long
+            valCP = Val(ws.Range("CP").Value) + 1
+            ws.Range("CP").Value = Format(valCP, "000")
+            ws.Range("Fase").Value = "EJECUTAR"
+            ws.Range("Reloj").Value = "T5"
+            ws.Range("Consola").Value = "Fase Búsqueda [T5]: Incremento del Contador de Programa (CP <- CP + 1 = " & ws.Range("CP").Value & ")."
+            
+            ResaltarCambio ws.Range("CP")
+            RegistrarPasoEnTraza "CP <- CP + 1"
+            
+        Case "EJECUTAR"
+            ' ------------------------------------------------------------------
+            ' Paso 6: EJECUTAR -> Select Case CO -> Fase = INICIO (o FIN si HLT)
+            ' ------------------------------------------------------------------
+            EjecutarInstruccionActual
+            
+        Case "FIN"
+            ' ------------------------------------------------------------------
+            ' Paso 7: FIN -> CPU detenida, requiere ResetCPU
+            ' ------------------------------------------------------------------
+            ws.Range("Consola").Value = "La CPU está DETENIDA (HLT alcanzado). Presione 'ResetCPU' para reiniciar el simulador."
+            MsgBox "El programa ha finalizado exitosamente (instrucción HLT alcanzada)." & vbCrLf & _
+                   "Presione el botón 'ResetCPU' para reiniciar la simulación.", vbInformation, "Simulador CPU - Programa Finalizado"
+                   
+        Case Else
+            ws.Range("Consola").Value = "Estado desconocido: '" & sFase & "'. Reiniciando a INICIO."
+            ws.Range("Fase").Value = "INICIO"
     End Select
-
-    wsSim.Range(CELDA_PASO_TN).Value = nuevoPaso
-    wsSim.Range(CELDA_CONSOLA).Value = descripcion
-
-    If Not wsTraza Is Nothing Then
-        Dim nextRow As Long
-        nextRow = wsTraza.Cells(wsTraza.Rows.Count, "A").End(xlUp).Row + 1
-        Dim mem993 As String
-        mem993 = ObtenerDatoMemoria(wsSim, "993")
-        wsTraza.Cells(nextRow, 1).Value = nuevoPaso
-        wsTraza.Cells(nextRow, 2).Value = fase
-        wsTraza.Cells(nextRow, 3).Value = microorden
-        wsTraza.Cells(nextRow, 4).Value = cp
-        wsTraza.Cells(nextRow, 5).Value = rdm
-        wsTraza.Cells(nextRow, 6).Value = rim
-        wsTraza.Cells(nextRow, 7).Value = ri
-        wsTraza.Cells(nextRow, 8).Value = ren1
-        wsTraza.Cells(nextRow, 9).Value = ren2
-        wsTraza.Cells(nextRow, 10).Value = ac
-        wsTraza.Cells(nextRow, 11).Value = mem993
-        wsTraza.Cells(nextRow, 12).Value = descripcion
-    End If
+    Reproteger ws
 End Sub
 
-' ------------------------------------------------------------------------------
-' 2. EJECUCIÓN COMPLETA AUTOMATIZADA CON EFECTO DE ANIMACIÓN
-' ------------------------------------------------------------------------------
+' ==============================================================================
+' 2. EJECUCIÓN DEL CONJUNTO DE INSTRUCCIONES
+' ==============================================================================
+Private Sub EjecutarInstruccionActual()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
+    Dim sCO As String
+    sCO = Trim(UCase(ws.Range("CO").Value))
+    
+    Dim sOP1 As String, sOP2 As String, sOP3 As String
+    sOP1 = Trim(ws.Range("_OP1").Value)
+    sOP2 = Trim(ws.Range("_OP2").Value)
+    sOP3 = Trim(ws.Range("_OP3").Value)
+    
+    Dim val1 As Double, val2 As Double, res As Double
+    Dim vMem1 As String, vMem2 As String
+    
+    Select Case sCO
+        Case "SUMAR"
+            ' Mem[OP3] = Mem[OP1] + Mem[OP2]
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("Consola").Value = "Fase Ejecución: Operación SUMAR. Leyendo operandos desde Mem[" & sOP1 & "] y Mem[" & sOP2 & "]."
+            
+            ' 1. Cargar Operando 1 en REN1
+            ws.Range("RDM").Value = sOP1
+            ws.Range("SelectorMem").Value = "ACTIVO"
+            ws.Range("BusControl").Value = "LECTURA"
+            ws.Range("BusDirecciones").Value = "OP1 -> RDM (" & sOP1 & ")"
+            AnimarFlecha "FlechaRDM_Mem"
+            vMem1 = BuscarEnMemoria(sOP1)
+            ws.Range("RIM").Value = vMem1
+            AnimarFlecha "FlechaMem_RIM"
+            ws.Range("_REN1").Value = vMem1
+            AnimarFlecha "FlechaMem_REN"
+            ResaltarCambio ws.Range("_REN1")
+            
+            ' 2. Cargar Operando 2 en REN2
+            ws.Range("RDM").Value = sOP2
+            ws.Range("BusDirecciones").Value = "OP2 -> RDM (" & sOP2 & ")"
+            AnimarFlecha "FlechaRDM_Mem"
+            vMem2 = BuscarEnMemoria(sOP2)
+            ws.Range("RIM").Value = vMem2
+            AnimarFlecha "FlechaMem_RIM"
+            ws.Range("_REN2").Value = vMem2
+            AnimarFlecha "FlechaMem_REN"
+            ResaltarCambio ws.Range("_REN2")
+            
+            ' 3. Cálculo en UAL y Acumulador
+            ws.Range("COP").Value = "SUMA (+)"
+            val1 = Val(ws.Range("_REN1").Value)
+            val2 = Val(ws.Range("_REN2").Value)
+            res = val1 + val2
+            ws.Range("Ac").Value = CStr(res)
+            AnimarFlecha "FlechaALU_Ac"
+            ResaltarCambio ws.Range("Ac")
+            ActualizarBanderas res
+            
+            ' 4. Almacenar Resultado en OP3
+            ws.Range("RDM").Value = sOP3
+            ws.Range("RIM").Value = CStr(res)
+            ws.Range("BusControl").Value = "ESCRITURA"
+            ws.Range("BusDirecciones").Value = "OP3 -> RDM (" & sOP3 & ")"
+            ws.Range("BusDatos").Value = "RIM -> RAM (" & CStr(res) & ")"
+            EscribirEnMemoria sOP3, CStr(res)
+            AnimarFlecha "FlechaRDM_Mem"
+            
+            ws.Range("Consola").Value = "Ejecución SUMAR completada: Mem[" & sOP3 & "] = " & val1 & " + " & val2 & " = " & res & "."
+            RegistrarPasoEnTraza "Mem[" & sOP3 & "] <- REN1 + REN2 (" & res & ")"
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "RESTAR"
+            ' Mem[OP3] = Mem[OP1] - Mem[OP2]
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("Consola").Value = "Fase Ejecución: Operación RESTAR. Leyendo operandos desde Mem[" & sOP1 & "] y Mem[" & sOP2 & "]."
+            
+            ' Cargar Operando 1
+            ws.Range("RDM").Value = sOP1
+            ws.Range("SelectorMem").Value = "ACTIVO"
+            ws.Range("BusControl").Value = "LECTURA"
+            AnimarFlecha "FlechaRDM_Mem"
+            vMem1 = BuscarEnMemoria(sOP1)
+            ws.Range("RIM").Value = vMem1
+            ws.Range("_REN1").Value = vMem1
+            AnimarFlecha "FlechaMem_REN"
+            ResaltarCambio ws.Range("_REN1")
+            
+            ' Cargar Operando 2
+            ws.Range("RDM").Value = sOP2
+            AnimarFlecha "FlechaRDM_Mem"
+            vMem2 = BuscarEnMemoria(sOP2)
+            ws.Range("RIM").Value = vMem2
+            ws.Range("_REN2").Value = vMem2
+            AnimarFlecha "FlechaMem_REN"
+            ResaltarCambio ws.Range("_REN2")
+            
+            ' UAL
+            ws.Range("COP").Value = "RESTA (-)"
+            val1 = Val(ws.Range("_REN1").Value)
+            val2 = Val(ws.Range("_REN2").Value)
+            res = val1 - val2
+            ws.Range("Ac").Value = CStr(res)
+            AnimarFlecha "FlechaALU_Ac"
+            ResaltarCambio ws.Range("Ac")
+            ActualizarBanderas res
+            
+            ' Almacenar en OP3
+            ws.Range("RDM").Value = sOP3
+            ws.Range("RIM").Value = CStr(res)
+            ws.Range("BusControl").Value = "ESCRITURA"
+            EscribirEnMemoria sOP3, CStr(res)
+            AnimarFlecha "FlechaRDM_Mem"
+            
+            ws.Range("Consola").Value = "Ejecución RESTAR completada: Mem[" & sOP3 & "] = " & val1 & " - " & val2 & " = " & res & "."
+            RegistrarPasoEnTraza "Mem[" & sOP3 & "] <- REN1 - REN2 (" & res & ")"
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "CARGAR"
+            ' Ac = Mem[OP1]
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("RDM").Value = sOP1
+            ws.Range("SelectorMem").Value = "ACTIVO"
+            ws.Range("BusControl").Value = "LECTURA"
+            AnimarFlecha "FlechaRDM_Mem"
+            vMem1 = BuscarEnMemoria(sOP1)
+            ws.Range("RIM").Value = vMem1
+            ws.Range("Ac").Value = vMem1
+            AnimarFlecha "FlechaALU_Ac"
+            ResaltarCambio ws.Range("Ac")
+            ActualizarBanderas Val(vMem1)
+            
+            ws.Range("Consola").Value = "Ejecución CARGAR: Ac <- Mem[" & sOP1 & "] (" & vMem1 & ")."
+            RegistrarPasoEnTraza "Ac <- Mem[" & sOP1 & "]"
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "ALMACENAR"
+            ' Mem[OP1] = Ac
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("RDM").Value = sOP1
+            ws.Range("RIM").Value = ws.Range("Ac").Value
+            ws.Range("SelectorMem").Value = "ACTIVO"
+            ws.Range("BusControl").Value = "ESCRITURA"
+            AnimarFlecha "FlechaRDM_Mem"
+            EscribirEnMemoria sOP1, ws.Range("Ac").Value
+            
+            ws.Range("Consola").Value = "Ejecución ALMACENAR: Mem[" & sOP1 & "] <- Ac (" & ws.Range("Ac").Value & ")."
+            RegistrarPasoEnTraza "Mem[" & sOP1 & "] <- Ac"
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "SALTAR"
+            ' CP = OP1
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("CP").Value = Format(Val(sOP1), "000")
+            ResaltarCambio ws.Range("CP")
+            ws.Range("Consola").Value = "Ejecución SALTAR: Salto incondicional a dirección " & ws.Range("CP").Value & "."
+            RegistrarPasoEnTraza "CP <- " & sOP1
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "SALTAR_SI_CERO"
+            ' if FlagZ = 1, CP = OP1
+            ws.Range("Reloj").Value = "T6"
+            If Val(ws.Range("FlagZ").Value) = 1 Then
+                ws.Range("CP").Value = Format(Val(sOP1), "000")
+                ResaltarCambio ws.Range("CP")
+                ws.Range("Consola").Value = "Ejecución SALTAR_SI_CERO: Condición Z=1 cumplida. Salto a dirección " & ws.Range("CP").Value & "."
+                RegistrarPasoEnTraza "CP <- " & sOP1 & " (Z=1)"
+            Else
+                ws.Range("Consola").Value = "Ejecución SALTAR_SI_CERO: Condición Z=0 no cumplida. Continúa flujo secuencial."
+                RegistrarPasoEnTraza "Salto no ejecutado (Z=0)"
+            End If
+            ws.Range("Fase").Value = "INICIO"
+            
+        Case "HLT"
+            ws.Range("Reloj").Value = "T6"
+            ws.Range("Fase").Value = "FIN"
+            ws.Range("Consola").Value = "Instrucción HLT: Detención del computador. Fin del programa."
+            RegistrarPasoEnTraza "HLT (Detener CPU)"
+            MsgBox "Programa terminado exitosamente (instrucción HLT alcanzada).", vbInformation, "Simulador CPU"
+            
+        Case Else
+            ws.Range("Consola").Value = "Instrucción no reconocida: '" & sCO & "'."
+            RegistrarPasoEnTraza "ERROR: Opcode desconocido (" & sCO & ")"
+            ws.Range("Fase").Value = "INICIO"
+    End Select
+End Sub
+
+' ==============================================================================
+' 3. MACRO: EjecutarInstruccionCompleta (Una instrucción completa por clic)
+' ==============================================================================
 Public Sub EjecutarInstruccionCompleta()
-    ResetCPU
-    Dim i As Integer
-    For i = 1 To 15
-        PasoCicloReloj
-        DoEvents
-        Application.Wait (Now + TimeValue("0:00:01")) ' Pausa de 1 segundo para visualización
-    Next i
-End Sub
-
-' ------------------------------------------------------------------------------
-' 3. REINICIO DE REGISTROS Y MEMORIA
-' ------------------------------------------------------------------------------
-Public Sub ResetCPU()
-    Dim wsSim As Worksheet, wsTraza As Worksheet
-    Set wsSim = ThisWorkbook.Sheets("Simulador_CPU")
-    On Error Resume Next
-    Set wsTraza = ThisWorkbook.Sheets("Tabla_de_Traza")
-    On Error GoTo 0
-
-    wsSim.Range(CELDA_CP).Value = "006"
-    wsSim.Range(CELDA_RI).Value = "SUMAR 033 992 993"
-    wsSim.Range(CELDA_CO).Value = "SUMAR"
-    wsSim.Range(CELDA_OP1_ADDR).Value = "033"
-    wsSim.Range(CELDA_OP2_ADDR).Value = "992"
-    wsSim.Range(CELDA_OP3_ADDR).Value = "993"
-    wsSim.Range(CELDA_ESTADO).Value = "INICIO"
-
-    wsSim.Range(CELDA_REN1).Value = "0"
-    wsSim.Range(CELDA_REN2).Value = "0"
-    wsSim.Range(CELDA_COP).Value = "SUMA (+)"
-    wsSim.Range(CELDA_AC).Value = "0"
-    wsSim.Range(CELDA_ZF).Value = "0"
-    wsSim.Range(CELDA_CF).Value = "0"
-    wsSim.Range(CELDA_SF).Value = "0"
-
-    wsSim.Range(CELDA_RDM).Value = "000"
-    wsSim.Range(CELDA_RIM).Value = "0"
-    wsSim.Range(CELDA_SELECTOR).Value = "INACTIVO"
-    wsSim.Range(CELDA_PASO_TN).Value = "T0"
-
-    EscribirDatoMemoria wsSim, "993", "0"
-
-    wsSim.Range("B15:F20").Interior.Color = RGB(255, 255, 255)
-    wsSim.Range("B16:F16").Interior.Color = RGB(254, 240, 138) ' Resaltar 006
-
-    wsSim.Range(CELDA_CONSOLA).Value = "CPU Reiniciada." & vbCrLf & _
-        "Presione 'Paso a Paso' para ejecutar la Microorden 1 (RDM <- C.P.)."
-
-    If Not wsTraza Is Nothing Then
-        Dim lastRow As Long
-        lastRow = wsTraza.Cells(wsTraza.Rows.Count, "A").End(xlUp).Row
-        If lastRow > 4 Then
-            wsTraza.Range("A5:L" & lastRow).ClearContents
-        End If
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
+    If Trim(UCase(ws.Range("Fase").Value)) = "FIN" Then
+        MsgBox "El programa ya ha alcanzado el estado FIN (HLT)." & vbCrLf & _
+               "Presione 'ResetCPU' para reiniciar antes de ejecutar nuevamente.", vbExclamation, "CPU Detenida"
+        Exit Sub
     End If
+    
+    Dim contadorSeguridad As Integer
+    contadorSeguridad = 0
+    
+    Do
+        PasoCicloReloj
+        contadorSeguridad = contadorSeguridad + 1
+        
+        Dim faseActual As String
+        faseActual = Trim(UCase(ws.Range("Fase").Value))
+        
+        If faseActual = "INICIO" Or faseActual = "FIN" Then
+            Exit Do
+        End If
+        
+        If contadorSeguridad > 25 Then
+            MsgBox "Límite de seguridad alcanzado (25 microórdenes sin retorno a INICIO/FIN).", vbExclamation, "Seguridad"
+            Exit Do
+        End If
+        
+        PausaSegundos 0.2
+    Loop
 End Sub
 
-' ------------------------------------------------------------------------------
-' 4. FUNCIONES AUXILIARES DE ACCESO A MEMORIA
-' ------------------------------------------------------------------------------
-Private Function ObtenerDatoMemoria(ws As Worksheet, ByVal direccion As String) As String
+' ==============================================================================
+' 4. MACRO: ResetCPU
+' ==============================================================================
+Public Sub ResetCPU()
+    Dim wsCPU As Worksheet, wsTraza As Worksheet
+    Set wsCPU = ThisWorkbook.Sheets("Simulador_CPU")
+    Set wsTraza = ThisWorkbook.Sheets("Tabla_de_Traza")
+    Desproteger wsCPU
+    
+    ' 1. Restaurar Registros de Unidad de Control
+    wsCPU.Range("CP").Value = "006"
+    wsCPU.Range("RI").Value = "SUMAR 033 992 993"
+    wsCPU.Range("CO").Value = "SUMAR"
+    wsCPU.Range("_OP1").Value = "033"
+    wsCPU.Range("_OP2").Value = "992"
+    wsCPU.Range("_OP3").Value = "993"
+    wsCPU.Range("Fase").Value = "INICIO"
+    
+    ' 2. Restaurar Registros de UAL
+    wsCPU.Range("_REN1").Value = "0"
+    wsCPU.Range("_REN2").Value = "0"
+    wsCPU.Range("COP").Value = "SUMA (+)"
+    wsCPU.Range("Ac").Value = "0"
+    wsCPU.Range("FlagZ").Value = "0"
+    wsCPU.Range("FlagC").Value = "0"
+    wsCPU.Range("FlagS").Value = "0"
+    
+    ' 3. Restaurar Interfaz de Memoria
+    wsCPU.Range("RDM").Value = "000"
+    wsCPU.Range("RIM").Value = "0"
+    wsCPU.Range("SelectorMem").Value = "INACTIVO"
+    wsCPU.Range("BusDirecciones").Value = "C.P. / R.I."
+    wsCPU.Range("BusDatos").Value = "RIM <-> RAM"
+    wsCPU.Range("BusControl").Value = "LECTURA / ESCRITURA"
+    wsCPU.Range("Reloj").Value = "T0"
+    
+    ' 4. Restaurar Memoria Central original
+    Dim rngMem As Range
+    Set rngMem = wsCPU.Range("TablaMemoria")
+    rngMem.Cells(1, 1).Value = "001": rngMem.Cells(1, 2).Value = "0"
+    rngMem.Cells(2, 1).Value = "006": rngMem.Cells(2, 2).Value = "SUMAR 033 992 993"
+    rngMem.Cells(3, 1).Value = "007": rngMem.Cells(3, 2).Value = "HLT"
+    rngMem.Cells(4, 1).Value = "033": rngMem.Cells(4, 2).Value = "56789"
+    rngMem.Cells(5, 1).Value = "992": rngMem.Cells(5, 2).Value = "66666"
+    rngMem.Cells(6, 1).Value = "993": rngMem.Cells(6, 2).Value = "0"
+    
+    ' Limpiar punteros en columna F
+    wsCPU.Range("F15:F25").ClearContents
+    wsCPU.Range("F16").Value = "◄ C.P. Inicial"
+    wsCPU.Range("F18").Value = "◄ &OP1"
+    wsCPU.Range("F19").Value = "◄ &OP2"
+    wsCPU.Range("F20").Value = "◄ &OP3 Destino"
+    
+    ' 5. Limpiar Consola
+    wsCPU.Range("Consola").Value = "Simulador reiniciado a condiciones iniciales." & vbCrLf & _
+                                   "C.P. = 006 | Presione 'Paso a Paso' o 'Ejecutar Instrucción'."
+                                   
+    ' 6. Limpiar Tabla de Traza
+    Dim ultFilaTraza As Long
+    ultFilaTraza = wsTraza.Cells(wsTraza.Rows.Count, 1).End(xlUp).Row
+    If ultFilaTraza > 4 Then
+        wsTraza.Range("A5:K" & ultFilaTraza).Clear
+    End If
+    wsTraza.Range("A4:K4").Value = Array("T0", "INICIAL", "Estado previo al inicio", "006", "000", "0", "0", "0", "0", "0", "0")
+    
+    ' 7. Restaurar colores neutros de flechas
+    Dim shp As Shape
+    For Each shp In wsCPU.Shapes
+        If Left(shp.Name, 6) = "Flecha" Then
+            shp.Line.ForeColor.RGB = COLOR_FLECHA_NEUTRA
+            shp.Line.Weight = 1.5
+        End If
+    Next shp
+    
+    wsCPU.Range("Consola").Value = "Simulador reiniciado exitosamente a condiciones iniciales (CP=006). Presione Paso a Paso o Ejecutar."
+    Reproteger wsCPU
+End Sub
+
+' ==============================================================================
+' 5. FUNCIONES DE MEMORIA Y DECODIFICACIÓN
+' ==============================================================================
+Public Function BuscarEnMemoria(ByVal direccion As String) As String
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
+    Dim rngMem As Range
+    Set rngMem = ws.Range("TablaMemoria")
+    
+    Dim sDirBuscada As String
+    sDirBuscada = Format(Val(Trim(direccion)), "000")
+    
     Dim i As Long
-    For i = 15 To 20
-        If Trim(CStr(ws.Cells(i, 2).Value)) = Trim(direccion) Then
-            ObtenerDatoMemoria = CStr(ws.Cells(i, 3).Value)
+    For i = 1 To rngMem.Rows.Count
+        Dim sDirFila As String
+        sDirFila = Format(Val(Trim(rngMem.Cells(i, 1).Value)), "000")
+        If sDirFila = sDirBuscada Then
+            BuscarEnMemoria = Trim(CStr(rngMem.Cells(i, 2).Value))
+            Dim rActual As Long
+            rActual = rngMem.Cells(i, 1).Row
+            ws.Range("F15:F25").ClearContents
+            ws.Cells(rActual, 6).Value = "◄ Activo"
             Exit Function
         End If
     Next i
-    ObtenerDatoMemoria = "0"
+    
+    BuscarEnMemoria = "ERROR: Dirección no encontrada"
+    ws.Range("Consola").Value = "ERROR: Dirección de memoria " & direccion & " no encontrada en RAM."
 End Function
 
-Private Sub EscribirDatoMemoria(ws As Worksheet, ByVal direccion As String, ByVal valor As String)
-    Dim i As Long
-    For i = 15 To 20
-        If Trim(CStr(ws.Cells(i, 2).Value)) = Trim(direccion) Then
-            ws.Cells(i, 3).Value = valor
-            Exit Sub
-        End If
-    Next i
-End Sub
-
-Private Sub ResaltarFilaMemoria(ws As Worksheet, ByVal direccion As String, ByVal colorRGB As Long)
-    ws.Range("B15:F20").Interior.Color = RGB(255, 255, 255)
-    Dim i As Long
-    For i = 15 To 20
-        If Trim(CStr(ws.Cells(i, 2).Value)) = Trim(direccion) Then
-            ws.Range(ws.Cells(i, 2), ws.Cells(i, 6)).Interior.Color = colorRGB
-            Exit Sub
-        End If
-    Next i
-End Sub
-
-' ------------------------------------------------------------------------------
-' 5. CREACIÓN AUTOMÁTICA DE BOTONES GRÁFICOS FLOTANTES CON FORMAS (SHAPES)
-' ------------------------------------------------------------------------------
-Public Sub CrearBotonesInteractivos()
+Public Sub EscribirEnMemoria(ByVal direccion As String, ByVal valor As String)
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    Desproteger ws
+    
+    Dim rngMem As Range
+    Set rngMem = ws.Range("TablaMemoria")
+    
+    Dim sDirBuscada As String
+    sDirBuscada = Format(Val(Trim(direccion)), "000")
+    
+    Dim i As Long
+    For i = 1 To rngMem.Rows.Count
+        Dim sDirFila As String
+        sDirFila = Format(Val(Trim(rngMem.Cells(i, 1).Value)), "000")
+        If sDirFila = sDirBuscada Then
+            rngMem.Cells(i, 2).Value = valor
+            ResaltarCambio rngMem.Cells(i, 2)
+            
+            Dim rActual As Long
+            rActual = rngMem.Cells(i, 1).Row
+            ws.Range("F15:F25").ClearContents
+            ws.Cells(rActual, 6).Value = "◄ Modificado"
+            Exit Sub
+        End If
+    Next i
+    
+    ws.Range("Consola").Value = "ERROR: No se pudo escribir en Mem[" & direccion & "]; dirección no encontrada."
+End Sub
 
-    ' Eliminar botones previos si existen
+Public Sub DecodificarInstruccion()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
+    Dim sRI As String
+    sRI = Trim(ws.Range("RI").Value)
+    
+    ws.Range("CO").Value = ""
+    ws.Range("_OP1").Value = ""
+    ws.Range("_OP2").Value = ""
+    ws.Range("_OP3").Value = ""
+    
+    If sRI = "" Then Exit Sub
+    
+    Dim partes() As String
+    partes = Split(sRI, " ")
+    
+    If UBound(partes) >= 0 Then ws.Range("CO").Value = UCase(partes(0))
+    If UBound(partes) >= 1 Then ws.Range("_OP1").Value = partes(1)
+    If UBound(partes) >= 2 Then ws.Range("_OP2").Value = partes(2)
+    If UBound(partes) >= 3 Then ws.Range("_OP3").Value = partes(3)
+End Sub
+
+' ==============================================================================
+' 6. REGISTRO EN TABLA DE TRAZA
+' ==============================================================================
+Public Sub RegistrarPasoEnTraza(ByVal notacionRTL As String)
+    Dim wsCPU As Worksheet, wsTraza As Worksheet
+    Set wsCPU = ThisWorkbook.Sheets("Simulador_CPU")
+    Set wsTraza = ThisWorkbook.Sheets("Tabla_de_Traza")
+    
+    Dim sigFila As Long
+    sigFila = wsTraza.Cells(wsTraza.Rows.Count, 1).End(xlUp).Row + 1
+    If sigFila < 4 Then sigFila = 4
+    
+    Dim sOP3 As String, valMemOP3 As String
+    sOP3 = Trim(wsCPU.Range("_OP3").Value)
+    If sOP3 <> "" Then
+        valMemOP3 = BuscarEnMemoria(sOP3)
+    Else
+        valMemOP3 = "-"
+    End If
+    
+    wsTraza.Cells(sigFila, 1).Value = wsCPU.Range("Reloj").Value
+    wsTraza.Cells(sigFila, 2).Value = wsCPU.Range("Fase").Value
+    wsTraza.Cells(sigFila, 3).Value = notacionRTL
+    wsTraza.Cells(sigFila, 4).Value = wsCPU.Range("CP").Value
+    wsTraza.Cells(sigFila, 5).Value = wsCPU.Range("RDM").Value
+    wsTraza.Cells(sigFila, 6).Value = wsCPU.Range("RIM").Value
+    wsTraza.Cells(sigFila, 7).Value = wsCPU.Range("RI").Value
+    wsTraza.Cells(sigFila, 8).Value = wsCPU.Range("_REN1").Value
+    wsTraza.Cells(sigFila, 9).Value = wsCPU.Range("_REN2").Value
+    wsTraza.Cells(sigFila, 10).Value = wsCPU.Range("Ac").Value
+    wsTraza.Cells(sigFila, 11).Value = valMemOP3
+    
+    With wsTraza.Range(wsTraza.Cells(sigFila, 1), wsTraza.Cells(sigFila, 11))
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(210, 210, 210)
+        .Font.Name = "Segoe UI"
+        .Font.Size = 9
+    End With
+    wsTraza.Cells(sigFila, 3).HorizontalAlignment = xlLeft
+End Sub
+
+' ==============================================================================
+' 7. ANIMACIÓN DE FLECHAS Y RESALTADO DE CELDAS
+' ==============================================================================
+Public Sub ResaltarCambio(ByVal rng As Range)
+    On Error Resume Next
+    Dim colorOriginal As Long
+    colorOriginal = rng.Interior.Color
+    
+    rng.Interior.Color = COLOR_RESALTADO
+    DoEvents
+    
+    PausaSegundos RETARDO_MICROORDEN
+    
+    rng.Interior.Color = colorOriginal
+    DoEvents
+End Sub
+
+Public Sub AnimarFlecha(ByVal nombreFlecha As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
     Dim shp As Shape
-    For Each shp In ws.Shapes
-        If shp.Name Like "BtnSim_*" Then shp.Delete
-    Next shp
+    Set shp = ws.Shapes(nombreFlecha)
+    If shp Is Nothing Then Exit Sub
+    
+    Dim pesoOriginal As Single
+    Dim colorOriginal As Long
+    pesoOriginal = shp.Line.Weight
+    colorOriginal = shp.Line.ForeColor.RGB
+    
+    shp.Line.ForeColor.RGB = COLOR_FLECHA_ACTIVA
+    shp.Line.Weight = 3.5
+    DoEvents
+    
+    PausaSegundos RETARDO_MICROORDEN
+    
+    shp.Line.ForeColor.RGB = colorOriginal
+    shp.Line.Weight = pesoOriginal
+    DoEvents
+End Sub
 
-    ' Botón 1: Paso a Paso
-    Dim b1 As Shape
-    Set b1 = ws.Shapes.AddShape(msoShapeRoundedRectangle, ws.Range("H14").Left, ws.Range("H14").Top, 110, 26)
-    b1.Name = "BtnSim_Paso"
-    b1.TextFrame.Characters.Text = "▶ Paso a Paso"
-    b1.TextFrame.Characters.Font.Bold = True
-    b1.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
-    b1.Fill.Solid
-    b1.Fill.ForeColor.RGB = RGB(37, 99, 235) ' Azul
-    b1.OnAction = "PasoCicloReloj"
+Private Sub ActualizarBanderas(ByVal resultado As Double)
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Simulador_CPU")
+    
+    If resultado = 0 Then
+        ws.Range("FlagZ").Value = 1
+    Else
+        ws.Range("FlagZ").Value = 0
+    End If
+    
+    If resultado < 0 Then
+        ws.Range("FlagS").Value = 1
+    Else
+        ws.Range("FlagS").Value = 0
+    End If
+    
+    If Abs(resultado) > 65535 Then
+        ws.Range("FlagC").Value = 1
+    Else
+        ws.Range("FlagC").Value = 0
+    End If
+End Sub
 
-    ' Botón 2: Reset
-    Dim b2 As Shape
-    Set b2 = ws.Shapes.AddShape(msoShapeRoundedRectangle, ws.Range("J14").Left, ws.Range("J14").Top, 110, 26)
-    b2.Name = "BtnSim_Reset"
-    b2.TextFrame.Characters.Text = "🔄 Reset CPU"
-    b2.TextFrame.Characters.Font.Bold = True
-    b2.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
-    b2.Fill.Solid
-    b2.Fill.ForeColor.RGB = RGB(239, 68, 68) ' Rojo
-    b2.OnAction = "ResetCPU"
+Public Sub PausaSegundos(ByVal seg As Double)
+    Dim tInicio As Double
+    tInicio = Timer
+    Do While Timer < tInicio + seg
+        DoEvents
+    Loop
+End Sub
 
-    ' Botón 3: Auto-Play
-    Dim b3 As Shape
-    Set b3 = ws.Shapes.AddShape(msoShapeRoundedRectangle, ws.Range("H15").Left, ws.Range("H15").Top, 230, 26)
-    b3.Name = "BtnSim_Auto"
-    b3.TextFrame.Characters.Text = "⏩ Ejecutar Instrucción Completa"
-    b3.TextFrame.Characters.Font.Bold = True
-    b3.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
-    b3.Fill.Solid
-    b3.Fill.ForeColor.RGB = RGB(16, 185, 129) ' Verde
-    b3.OnAction = "EjecutarInstruccionCompleta"
+' ==============================================================================
+' GESTIÓN DE PROTECCIÓN DE HOJA (Permite edición de usuario solo en B15:E20)
+' ==============================================================================
+Private Sub Desproteger(ws As Worksheet)
+    On Error Resume Next
+    ws.Unprotect ""
+End Sub
 
-    MsgBox "¡Botones interactivos creados con éxito en la hoja!", vbInformation, "Simulador CPU"
+Private Sub Reproteger(ws As Worksheet)
+    On Error Resume Next
+    ws.Range("B15:E20").Locked = False
+    ws.Protect Password:="", DrawingObjects:=False, Contents:=True, Scenarios:=True, UserInterfaceOnly:=True
 End Sub
