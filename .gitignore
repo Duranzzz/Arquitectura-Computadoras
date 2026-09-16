@@ -11,6 +11,7 @@ TareaActual.md
 *.so
 *.dll
 *.bin
+*.bmp
 overflow
 overflow.exe
 **/overflow
