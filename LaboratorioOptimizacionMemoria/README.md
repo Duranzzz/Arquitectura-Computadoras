@@ -47,6 +47,10 @@ $ getconf LEVEL1_DCACHE_LINESIZE
 $ cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size
 ```
 
+<p align="center">
+  <img src="imgs/01-VerificacionHardwareCache.png" alt="Verificación de Microarquitectura y Líneas de Caché L1" width="850" style="border: 1px solid #444; border-radius: 4px;" />
+</p>
+
 ### Principio Físico Fundamental
 * Una línea de caché de **64 Bytes** almacena exactamente **16 números de punto flotante de 32 bits** ($\text{sizeof}(\text{float}) = 4 \text{ bytes}$, $64 / 4 = 16$).
 * Cuando la CPU solicita un único elemento flotante en memoria que no está en caché, el bus de memoria **no transfiere 4 bytes aislados**, sino que transfiere en ráfaga (*burst transfer*) el bloque de **64 bytes contiguos** (los 16 floats adyacentes alineados).
@@ -151,6 +155,14 @@ Ejecución determinística sobre matriz de $N = 1024$ ($2.15\text{ GFLOP}$ teór
   * Checksum Fase 1: `1.5839e+09`
   * Checksum Fase 4: `1.5839e+09`
   * **Error Absoluto:** `0.0000e+00` (Resultado matemáticamente exacto e idéntico).
+
+<p align="center">
+  <img src="imgs/02-EjecucionBenchmarkMemoria.png" alt="Ejecución de Benchmark de Jerarquía de Memoria" width="850" style="border: 1px solid #444; border-radius: 4px;" />
+</p>
+
+<p align="center">
+  <img src="imgs/03-GraficaAceleracionSpeedup.png" alt="Gráfica de Aceleración y GFLOPS por Fase" width="850" style="border: 1px solid #444; border-radius: 4px;" />
+</p>
 
 ---
 
