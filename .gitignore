@@ -2,6 +2,7 @@
 TaskTemplate.md
 CurrentTask.md
 TareaActual.md
+AGENTS.md
 
 # Compiled C/C++ binaries & executables
 *.o
