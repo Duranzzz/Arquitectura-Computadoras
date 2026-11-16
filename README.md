@@ -1,6 +1,7 @@
 # Arquitectura de Computadoras
 
 [![Language: C/C++](https://img.shields.io/badge/Language-C%20%2F%20C%2B%2B%20%2F%20ASM-00599C.svg?logo=c&logoColor=white)](https://github.com/Duranzzz/Arquitectura-Computadoras)
+[![Quantum: Qiskit](https://img.shields.io/badge/Quantum-Qiskit%202.6-6929C4.svg?logo=python&logoColor=white)](https://github.com/Duranzzz/Arquitectura-Computadoras)
 [![Environment: Linux & Windows](https://img.shields.io/badge/Platform-Ubuntu%20Linux%20%7C%20MSYS2-E95420.svg?logo=ubuntu&logoColor=white)](https://github.com/Duranzzz/Arquitectura-Computadoras)
 [![Kanban: Project 5](https://img.shields.io/badge/Kanban-GitHub%20Projects%20%235-brightgreen.svg?logo=github&logoColor=white)](https://github.com/users/Duranzzz/projects/5)
 [![Status: Active](https://img.shields.io/badge/Semester-2--2026-blue.svg)](https://github.com/Duranzzz/Arquitectura-Computadoras)
@@ -55,6 +56,7 @@ Este espacio centraliza el código fuente, bancos de prueba, simuladores de hard
 * **Jerarquía y Optimización de Memoria:** Cuantificación de latencia en niveles de caché L1/L2/L3, penalización de fallos de caché (*cache misses*), algoritmos de convolución 2D optimizados y análisis de intercambio a disco (*Swap space*).
 * **Buses de Comunicación e IPC de Alto Rendimiento:** Comparación entre conductos conmutados por el kernel (*Named Pipes* con millones de syscalls) y memoria compartida POSIX (*Shared Memory* Zero-Copy con semáforos y procesamiento por lotes).
 * **Paralelismo y Afinidad de CPU:** Control de afinidad de núcleos (*CPU Affinity*), anclaje de hilos (*Thread Pinning*) y pruebas de estrés bajo contención multi-core.
+* **Computación Cuántica y Qiskit:** Fundamentos de mecánica cuántica (superposición, entrelazamiento, Esfera de Bloch), arquitectura criogénica de QPU superconductoras (cúbits Transmon a 15 mK), y programación de circuitos cuánticos: Estado de Bell, Algoritmo de Deutsch, Phase Kickback y Teletransportación Cuántica.
 
 ---
 
@@ -64,6 +66,7 @@ El repositorio se encuentra estructurado en carpetas independientes para cada m�
 
 | Directorio | Tarea / Módulo | Descripción Técnica | Lenguajes / Herramientas | Estado |
 | :--- | :--- | :--- | :--- | :---: |
+| [`LaboratorioProgramacionCuantica/`](LaboratorioProgramacionCuantica/) | **Lab: Programación Cuántica Qiskit** (Issue #36) | Estado de Bell \|Φ⁺⟩, rotaciones en Esfera de Bloch, Algoritmo de Deutsch (ventaja cuántica), Teletransportación Cuántica (Bennett 1993), arquitectura criogénica Full-Stack. | Python 3.14, Qiskit 2.6.2, Aer | **Done** |
 | [`LaboratorioTecladoMonitorBuses/`](LaboratorioTecladoMonitorBuses/) | **Lab: E/S, BDA y VRAM** (Issue #35) | Inyección en cola TTY, interrupción BIOS `INT 16h`, BDA en RAM (`0x0040:0x001A`), lectura por puerto `0x60/0x64`, y memoria VRAM (`/dev/fb0`, `/dev/vcsa`, `0xB8000`). | ANSI C99, ASM inline, POSIX | **Done** |
 | [`LaboratorioPuertosColaVRAM/`](LaboratorioPuertosColaVRAM/) | **Lab: Buses, FIFO y VRAM 4x4** (Issue #34) | Controlador de teclado por puertos aislados (`0x01/0x02`), cola circular FIFO en RAM (`0x70..0x7A`), VRAM con Latch CRT y terminal con borrado Backspace. | ANSI C99, GCC, Simulación Bus | **Done** |
 | [`PracticaOptimizacionBusesIPC/`](PracticaOptimizacionBusesIPC/) | **Práctica: Buses IPC y Memoria** (Issue #33) | Benchmark de 10,000,000 paquetes: Pipes FIFO (20M syscalls) vs Memoria Compartida POSIX Zero-Copy + Semáforos + Batching (40k señales). | C99, POSIX shm, Pthreads | **Done** |
@@ -83,19 +86,27 @@ El repositorio se encuentra estructurado en carpetas independientes para cada m�
 
 ## 4. Módulos Recientes Destacados
 
-### 4.1 Laboratorio de Entradas, Salidas por Puertos, BDA y VRAM (`LaboratorioTecladoMonitorBuses`)
+### 4.1 Laboratorio de Programación Cuántica con Qiskit (`LaboratorioProgramacionCuantica`)
+* **4 Prácticas Fundamentales** sobre circuitos cuánticos simulados con Qiskit 2.6.2 y Aer Simulator (C++ optimizado).
+* **Estado de Bell |Φ⁺⟩ (`lab1_hola_mundo.py`):** Creación de par de cúbits máximamente entrelazados (Hadamard + CNOT). Correlación perfecta: 50.72% |00⟩, 49.28% |11⟩, 0% estados cruzados.
+* **Rotaciones Esfera de Bloch (`lab2_rotaciones_bloch.py`):** Verificación experimental de P(|0⟩) = cos²(θ/2) en 4 posiciones cardinales (Polo Norte, 45°, Ecuador, Polo Sur) con 10,000 disparos por ángulo.
+* **Algoritmo de Deutsch (`lab3_algoritmo_deutsch.py`):** Primera demostración de ventaja cuántica (1985): clasificación constante/balanceada en **1 query** vs 2 clásicas mediante Phase Kickback.
+* **Teletransportación Cuántica (`lab4_teletransportacion.py`):** Protocolo de Bennett et al. (1993) con verificación estadística: P(|0⟩)=74.98% vs 75.00% teórico — transferencia fiel del estado cuántico.
+* **Arquitectura Full-Stack:** Estudio de las 4 capas (Software 300K → Electrónica RF → Criogenia → QPU a 15 mK con cúbits Transmon).
+
+### 4.2 Laboratorio de Entradas, Salidas por Puertos, BDA y VRAM (`LaboratorioTecladoMonitorBuses`)
 * **Manual Técnico de 11 Páginas:** Modela el subsistema de entrada/salida y video del PC clásico x86.
 * **Escritor BDA (`prog1_escribir_cola.c`):** Inserta pulsaciones mediante inyección TTY (`ioctl(TIOCSTI)`), servicio de interrupción BIOS `INT 16h (AH = 05h)` con detección de desbordamiento, y escritura directa a memoria RAM en el segmento BDA (`0x0040:0x001A`).
 * **Lector Multi-Método (`prog2_leer_teclado.c`):** Demuestra lectura en niveles de abstracción crecientes: `scanf()`, `getc()`, lectura directa por puerto aislado `0x60` con handshake en el puerto `0x64`, lectura directa de BDA en RAM y llamada BIOS `INT 16h (AH = 00h)` extrayendo `AL=ASCII` y `AH=Scan-code`.
 * **Monitor VRAM en Linux (`escribir_monitor_linux.c`):** Manipulación de Framebuffer `/dev/fb0` (píxeles RGB), consola virtual `/dev/vcsa`, memoria física en `0xB8000` con ensamblador embebido `movb %0, (%1)`, y proyección CRT didáctica con colores ANSI reales.
 
-### 4.2 Laboratorio de Puertos, Cola Circular y Monitor VRAM 4x4 (`LaboratorioPuertosColaVRAM`)
+### 4.3 Laboratorio de Puertos, Cola Circular y Monitor VRAM 4x4 (`LaboratorioPuertosColaVRAM`)
 * **Simulación Von Neumann:** Implementa buses externos independientes (Address, Data, Control) y aduanas MAR/MDR.
 * **Handshake Automático de Hardware:** La lectura del puerto de datos `0x02` limpia de inmediato el bit 0 del registro de estado en el puerto `0x01`.
 * **Buffer Circular en Memoria RAM (`0x70..0x7A`):** Gestión rigurosa de 8 celdas en RAM con punteros `KB_HEAD` (`0x78`), `KB_TAIL` (`0x79`) y `KB_COUNT` (`0x7A`), asegurando aritmética circular modular y rechazo por *Buffer Overflow*.
 * **Controlador VRAM y Reto Integrador:** Pantalla de 4x4 caracteres (`0xF0..0xFF`) con Latch de refresco para evitar parpadeos visuales (*tearing*), desplazamiento vertical hacia arriba (*Scroll Up*) y terminal con borrado interactivo mediante tecla **Backspace** (`0x08` / `0x7F`).
 
-### 4.3 Práctica de Optimización de Buses e IPC en Linux (`PracticaOptimizacionBusesIPC`)
+### 4.4 Práctica de Optimización de Buses e IPC en Linux (`PracticaOptimizacionBusesIPC`)
 * **Carga de Estrés:** Transmisión masiva de 10,000,000 paquetes de 64 bytes (640 MB de carga útil neta).
 * **Comparativa Arquitectónica:**
   * *No Optimizado (Named Pipes):* 20,000,000 cambios de contexto Ring 3 $\leftrightarrow$ Ring 0 mediante `write()` y `read()` individuales, sufriendo el cuello de botella del kernel y doble copia en memoria.
@@ -116,7 +127,7 @@ El seguimiento pedagógico y técnico de todas las actividades se gestiona a tra
 
 ### Regla de Posicionamiento Descendente:
 Para garantizar una navegación ágil y cronológica, las tarjetas de la columna **Done** se posicionan con el número de tarea más reciente en el **tope superior (posición #1)**, descendiendo progresivamente hacia las primeras tareas del semestre:
-$$\text{Issue \#35} \to \text{Issue \#34} \to \text{Issue \#33} \to \dots \to \text{Issue \#4}$$
+$$\text{Issue \#36} \to \text{Issue \#35} \to \text{Issue \#34} \to \text{Issue \#33} \to \dots \to \text{Issue \#4}$$
 
 ---
 
